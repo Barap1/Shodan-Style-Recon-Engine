@@ -32,6 +32,17 @@ def respond_to_any_path(any_path):
   # Here, 'any_path' will capture any URL path as a variable
   return render_template("404.html")  # Render a 404 page
 
+@app.route("/insert", methods=["POST"])
+def insert():
+    try:
+        # get json data from the request object
+        results_json = request.get_json()
+        collection.insert_many(results_json)
+        return jsonify({"message": "Inserted"})
+
+    except Exception as e:
+        print(f"Error inserting data into the database: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/bytitle", methods=["GET"])
 def bytitle():
