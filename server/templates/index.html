@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SSL Scanner</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+</head>
+<body>
+  <div class="container mt-3">
+    <h1 class="text-center">Shodan-Style Network Search Engine</h1>
+    <h5 class="text-center">Used for vulnerability analysis and penetration testing</h5>
+
+    <p class="text-center mt-4">Add the IP subnets that you would like to scan to the ips.txt file and then run scanner.py.</p>
+
+    <p class="text-center">The scanner will then gather information and then add it to a MongoDB database. Use this site to search it!</p>
+
+    <p class="text-center mt-4">Here are the search options available:</p>
+
+    <div class="row">
+      <div class="col-md-6">
+        <h2>Search by Title</h2>
+        <form action="/bytitle" method="GET">
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" name="title" placeholder="Enter title" required>
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+          <div class="input-group mb-3 d-none">
+            <input type="number" class="form-control" name="from" placeholder="From" value="0">
+            <input type="number" class="form-control" name="to" placeholder="To" value="10">
+          </div>
+        </form>
+
+        <h2>Search by Domain</h2>
+        <form action="/bydomain" method="GET">
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" name="domain" placeholder="Enter domain name" required>
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="col-md-6">
+        <h2>Search by Header Response</h2>
+        <form action="/byhresponse" method="GET">
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" name="hresponse" placeholder="Enter header response" required>
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+          <div class="input-group mb-3 d-none">
+            <input type="number" class="form-control" name="from" placeholder="From" value="0">
+            <input type="number" class="form-control" name="to" placeholder="To" value="10">
+          </div>
+        </form>
+
+        <h2>Search by IP Address</h2>
+        <form action="/byip" method="GET">
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" name="ip" placeholder="Enter IP address" required>
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-md-6">
+        <h2>Search by Port</h2>
+        <form action="/byport" method="GET">
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" name="port" placeholder="Enter port number" required>
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+          <div class="input-group mb-3 d-none">
+            <input type="number" class="form-control" name="from" placeholder="From" value="0">
+            <input type="number" class="form-control" name="to" placeholder="To" value="10">
+          </div>
+        </form>
+      </div>
+
+      <div class="col-md-6">
+        <h2>Search by Header Key Response</h2>
+        <form action="/byhkeyresponse" method="GET">
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" name="hkeyresponse" placeholder="Enter header key response" required>
+            <button type="submit" class="btn btn-primary">Search</button>
+          </div>
+          <div class="input-group mb-3 d-none">
+            <input type="number" class="form-control" name="from" placeholder="From" value="0">
+            <input type="number" class="form-control" name="to" placeholder="To" value="10">
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="text-center">
+      <a href="/delete" class="btn btn-danger mt-3">Delete All Data (Caution!)</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFOnpDln4hrXvNCYZjhm8FFUsIrYrYTxrHDBnDxuVuqRLt8A8tNToOo++I" crossorigin="anonymous"></script>
+</body>
+</html>
