@@ -1,10 +1,9 @@
 <h1 align="center">Shodan Style Recon Engine</h1>
 
-<br />
+
+
 <div align="center">
-  <a href="https://github.com/Barap1/Shodan-Style-Recon-Engine
-    <img src="info" alt="info" >
-  </a>
+<img src="info" alt="Information about my project">
 </div>
 
 
