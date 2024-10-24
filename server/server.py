@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify, Response, render_template
+import re
 import json
 from bson.regex import Regex
-import re
 from pymongo import MongoClient
+from flask import Flask, request, jsonify, Response, render_template
 
 app = Flask(__name__)
 # MongoDB configuration
