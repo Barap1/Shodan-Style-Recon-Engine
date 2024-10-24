@@ -39,11 +39,19 @@ class SSLChecker:
         self.MAX_CONCURRENT = MAX_CONCURRENT
 
     def is_valid_domain(self, common_name):
+        """
+        Checks whether the domain found is a real domain with regex
+        """
+        
         # Regular expression pattern for a valid domain name
         domain_pattern = r"^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
         return re.match(domain_pattern, common_name) is not None
 
     async def makeGetRequest(self, session, protocol, ip, common_name, makeRequestByIP=True):
+        """
+        used by check_domains() to send a get request to the ip and the domain to collect information about it and then procress and stor it in a dict
+        """
+
         async def parseResponse(url, port):
             try:
                 if self.semaphore.locked():
@@ -165,6 +173,10 @@ class SSLChecker:
             return await parseResponse(url, port)
 
     async def check_site(self, session, ip, common_name):
+        """
+        Used by extract_domains to to get request function depending on what information is available abou tit
+        """
+
         try:
             async with self.semaphore:
                 temp_dict = {}
@@ -199,6 +211,10 @@ class SSLChecker:
         return None
 
     async def fetch_certificate(self, ip):
+        """
+        Used by extract_domains() to get infomration about the common name from the certificate
+        """
+
         try:
             cert = await asyncio.to_thread(ssl.get_server_certificate, (ip, self.ssl_port), timeout=self.timeout)
 
@@ -219,6 +235,10 @@ class SSLChecker:
         return ip, ""
 
     async def extract_domains(self):
+        """
+        collects data on the ip addresses found and then sends the data to the server
+        """
+
         try:
             with open(self.mass_scan_results_file, "r") as file:
                 content = file.read()
@@ -264,6 +284,10 @@ class SSLChecker:
             print(f"An unexpected error occurred: {e}")
 
     def run_masscan(self):
+        """
+        Uses subprocesses to run the masscan command
+        """
+
         try:
             # this rate limit is the ideal to get the maximum amount of ip addresses
             command = f"sudo masscan -p443 --rate {self.masscan_rate} --wait 0 -iL {self.ips_file} -oH {self.mass_scan_results_file}"
@@ -277,6 +301,10 @@ class SSLChecker:
             print(f"An unexpected error occurred: {e}")
 
     def check_and_create_files(self, *file_paths):
+        """
+        Creates setup files if they are not already there
+        """
+        
         for file_path in file_paths:
             if not os.path.exists(file_path):
                 # If the file doesn't exist, create it
