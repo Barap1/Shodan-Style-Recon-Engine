@@ -52,10 +52,10 @@ This project is designed to run on Ubuntu, which can be set up via WSL on Window
 2. Navigate to *localhost:5000* to access the web interface.
 
 3. Web Interface Actions:
-   - Run Scanner: Configure and start the scanner.
-   - Add IP Address: Add individual IP addresses to the scan list.
-   - Controls: Stop the scanner and delete all data.
-   - Search: Search the MongoDB database by title, domain, IP address, port, header response, or header key response.
+- Run Scanner: Configure and start the scanner.
+- Add IP Address: Add individual IP addresses to the scan list.
+- Controls: Stop the scanner and delete all data.
+- Search: Search the MongoDB database by title, domain, IP address, port, header response, or header key response.
 
 ## Roadmap
 
