@@ -2,3 +2,6 @@ masscan/
 ips.txt
 masscanResults.txt
 server/__pycache__/server.cpython-310.pyc
+server/status.json
+server/chunks_processed.json
+paused.conf

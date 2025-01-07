@@ -3,100 +3,332 @@
 <head>
   <meta charset="UTF-8">
   <title>MongoDB Network Search</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .container {
+      margin-top: 50px;
+    }
+    .card {
+      margin-bottom: 20px;
+    }
+    .navbar {
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+    .input-group .form-control {
+      border-radius: 0.25rem;
+    }
+    .btn-primary, .btn-danger {
+      border-radius: 0.25rem;
+    }
+    .btn-primary:hover, .btn-danger:hover {
+      opacity: 0.8;
+    }
+    .input-group .btn {
+      border-radius: 0.25rem;
+    }
+    .input-group .btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+    }
+    .input-group .btn-primary:hover {
+      background-color: #0056b3;
+      border-color: #004085;
+    }
+    .input-group .btn-danger {
+      background-color: #dc3545;
+      border-color: #dc3545;
+    }
+    .input-group .btn-danger:hover {
+      background-color: #c82333;
+      border-color: #bd2130;
+    }
+    .nav-link.delete-all {
+      color: red;
+      font-weight: bold;
+    }
+    .status-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-text {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+  </style>
 </head>
 <body>
-  <div class="container mt-3">
-    <h1 class="text-center">Shodan-Style Network Search Engine</h1>
-    <h5 class="text-center">Used for vulnerability analysis and penetration testing</h5>
+  <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="/">Shodan-Style Network Search Engine</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </div>
+  </nav>
 
-    <p class="text-center mt-4">Add the IP subnets that you would like to scan to the ips.txt file and then run scanner.py.</p>
-
-    <p class="text-center">The scanner will then gather information and then add it to a MongoDB database. Use this site to search it!</p>
-
-    <p class="text-center mt-4">Here are the search options available:</p>
-
-    <div class="row">
-      <div class="col-md-6">
-        <h2>Search by Title</h2>
-        <form action="/bytitle" method="GET">
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" name="title" placeholder="Enter title" required>
-            <button type="submit" class="btn btn-primary">Search</button>
-          </div>
-          <div class="input-group mb-3 d-none">
-            <input type="number" class="form-control" name="from" placeholder="From" value="0">
-            <input type="number" class="form-control" name="to" placeholder="To" value="10">
-          </div>
-        </form>
-
-        <h2>Search by Domain</h2>
-        <form action="/bydomain" method="GET">
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" name="domain" placeholder="Enter domain name" required>
-            <button type="submit" class="btn btn-primary">Search</button>
-          </div>
-        </form>
-      </div>
-
-      <div class="col-md-6">
-        <h2>Search by Header Response</h2>
-        <form action="/byhresponse" method="GET">
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" name="hresponse" placeholder="Enter header response" required>
-            <button type="submit" class="btn btn-primary">Search</button>
-          </div>
-          <div class="input-group mb-3 d-none">
-            <input type="number" class="form-control" name="from" placeholder="From" value="0">
-            <input type="number" class="form-control" name="to" placeholder="To" value="10">
-          </div>
-        </form>
-
-        <h2>Search by IP Address</h2>
-        <form action="/byip" method="GET">
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" name="ip" placeholder="Enter IP address" required>
-            <button type="submit" class="btn btn-primary">Search</button>
-          </div>
-        </form>
-      </div>
+  <div class="container">
+    <div class="text-center mb-4">
+      <h1>Shodan-Style Network Search Engine</h1>
+      <h5>Used for vulnerability analysis and penetration testing</h5>
+      <p>Add the IP subnets that you would like to scan and then run the scanner.</p>
+      <p>The scanner will then gather information and add it to a MongoDB database. Use this site to search it!</p>
     </div>
 
     <div class="row">
       <div class="col-md-6">
-        <h2>Search by Port</h2>
-        <form action="/byport" method="GET">
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" name="port" placeholder="Enter port number" required>
-            <button type="submit" class="btn btn-primary">Search</button>
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">Run Scanner</h2>
+            <form id="scanForm" action="/scan" method="POST">
+              <div class="input-group mb-3">
+                <input type="number" class="form-control" name="masscan_rate" placeholder="Masscan Rate (Default: 10000)" required>
+              </div>
+              <div class="input-group mb-3">
+                <input type="number" class="form-control" name="timeout" placeholder="Timeout (Default: 3)" required>
+              </div>
+              <div class="input-group mb-3">
+                <input type="number" class="form-control" name="chunkSize" placeholder="Chunk Size (Default: 50)" required>
+              </div>
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" name="ports" placeholder="Ports (comma-separated) (Default: 80)" required>
+              </div>
+              <div class="status-container">
+                <div class="button-container">
+                  <button type="submit" class="btn btn-primary">Run Scanner</button>
+                </div>
+                <div class="status-text">
+                  <div id="scannerStatus"></div>
+                  <div id="chunksProcessed"></div>
+                </div>
+              </div>
+            </form>
           </div>
-          <div class="input-group mb-3 d-none">
-            <input type="number" class="form-control" name="from" placeholder="From" value="0">
-            <input type="number" class="form-control" name="to" placeholder="To" value="10">
-          </div>
-        </form>
+        </div>
       </div>
 
       <div class="col-md-6">
-        <h2>Search by Header Key Response</h2>
-        <form action="/byhkeyresponse" method="GET">
-          <div class="input-group mb-3">
-            <input type="text" class="form-control" name="hkeyresponse" placeholder="Enter header key response" required>
-            <button type="submit" class="btn btn-primary">Search</button>
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">Add IP Address</h2>
+            <form id="addIpForm" action="/add_ip" method="POST">
+              <div class="input-group mb-3">
+                <input type="text" class="form-control" name="ip_address" placeholder="Enter IP address" required>
+                <button type="submit" class="btn btn-primary">Add IP</button>
+              </div>
+            </form>
+            <div id="addIpStatus" class="mt-3"></div>
           </div>
-          <div class="input-group mb-3 d-none">
-            <input type="number" class="form-control" name="from" placeholder="From" value="0">
-            <input type="number" class="form-control" name="to" placeholder="To" value="10">
+        </div>
+        <div class="card mb-4">
+          <div class="card-body">
+            <h2 class="card-title">Controls</h2>
+            <div class="d-flex justify-content-between">
+              <button id="stopScanner" class="btn btn-danger">Stop Scanner</button>
+              <a class="btn btn-danger" href="/delete">Delete All Data</a>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
 
-    <div class="text-center">
-      <a href="/delete" class="btn btn-danger mt-3">Delete All Data (Caution!)</a>
+    <div class="row">
+      <div class="col-md-12">
+        <div class="card mb-4">
+          <div class="card-body search-box">
+            <h2 class="card-title">Search</h2>
+            <form id="searchForm" action="" method="GET">
+              <div class="input-group mb-3">
+                <select id="searchType" class="form-select" required>
+                  <option value="" disabled selected>Select search type</option>
+                  <option value="/bytitle">Title</option>
+                  <option value="/bydomain">Domain</option>
+                  <option value="/byip">IP Address</option>
+                  <option value="/byport">Port</option>
+                  <option value="/byhresponse">Header Response</option>
+                  <option value="/byhkeyresponse">Header Key Response</option>
+                </select>
+                <input type="text" id="searchInput" class="form-control" placeholder="Select search type" required>
+                <button type="submit" class="btn btn-primary">Search</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFOnpDln4hrXvNCYZjhm8FFUsIrYrYTxrHDBnDxuVuqRLt8A8tNToOo++I" crossorigin="anonymous"></script>
+  <script>
+    const scanForm = document.getElementById("scanForm");
+    const stopScannerButton = document.getElementById("stopScanner");
+    const scannerStatusDiv = document.getElementById("scannerStatus");
+    const chunksProcessedDiv = document.getElementById("chunksProcessed");
+
+    let scannerStatusInterval;
+    let chunksProcessedInterval;
+
+    scanForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(scanForm);
+      const params = new URLSearchParams(formData);
+
+      try {
+        const response = await fetch("/scan", {
+          method: "POST",
+          body: params,
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          alert(data.message);
+          checkScannerStatus();
+          clearInterval(scannerStatusInterval);
+          clearInterval(chunksProcessedInterval);
+          scannerStatusInterval = setInterval(checkScannerStatus, 990);
+          chunksProcessedInterval = setInterval(checkChunksProcessed, 1000);
+        } else {
+          console.error(data.error);
+          
+        }
+      } catch (error) {
+        console.error(error);
+        
+      }
+    });
+
+    stopScannerButton.addEventListener("click", async () => {
+      try {
+        const response = await fetch("/scanstop", { method: "POST" });
+        const data = await response.json();
+
+        if (response.ok) {
+          alert(data.message);
+          scannerStatusDiv.innerHTML = "Scanner is not running.";
+          chunksProcessedDiv.innerHTML = "";
+          clearInterval(scannerStatusInterval);
+          clearInterval(chunksProcessedInterval);
+        } else {
+          console.error(data.error);
+          alert("Failed to stop the scanner.");
+        }
+      } catch (error) {
+        console.error(error);
+        alert("Failed to stop the scanner.");
+      }
+    });
+
+    async function checkScannerStatus() {
+      try {
+        const response = await fetch("/scanstatus");
+        const data = await response.json();
+
+        if (response.ok) {
+          if (data.status === "running") {
+            scannerStatusDiv.innerHTML = `Scanner is running. Elapsed time: ${data.elapsed_time} seconds.`;
+          } else {
+            scannerStatusDiv.innerHTML = "Scanner is not running.";
+            clearInterval(scannerStatusInterval);
+            clearInterval(chunksProcessedInterval);
+
+          }
+        } else {
+          console.error(data.error);
+          scannerStatusDiv.innerHTML = "An error occurred while checking the scanner status.";
+        }
+      } catch (error) {
+        console.error(error);
+        scannerStatusDiv.innerHTML = "An error occurred while checking the scanner status.";
+      }
+    }
+
+    async function checkChunksProcessed() {
+      try {
+        const response = await fetch("/scanchunks");
+        const data = await response.json();
+
+        if (response.ok) {
+          chunksProcessedDiv.innerHTML = `Chunks processed: ${data.chunks_processed}`;
+        } else {
+          console.error(data.error);
+          chunksProcessedDiv.innerHTML = "An error occurred while checking the chunks processed.";
+        }
+      } catch (error) {
+        console.error(error);
+        chunksProcessedDiv.innerHTML = "An error occurred while checking the chunks processed.";
+      }
+    }
+
+    // Check scanner status and chunks processed on page load
+    checkScannerStatus();
+    checkChunksProcessed();
+    scannerStatusInterval = setInterval(checkScannerStatus, 990);
+    chunksProcessedInterval = setInterval(checkChunksProcessed, 1000);
+
+    const addIpForm = document.getElementById("addIpForm");
+    const addIpStatusDiv = document.getElementById("addIpStatus");
+
+    addIpForm.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const formData = new FormData(addIpForm);
+      const params = new URLSearchParams(formData);
+
+      try {
+        const response = await fetch("/add_ip", {
+          method: "POST",
+          body: params,
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          addIpStatusDiv.innerHTML = data.message;
+        } else {
+          console.error(data.error);
+          addIpStatusDiv.innerHTML = `Error: ${data.error}`;
+        }
+      } catch (error) {
+        console.error(error);
+        addIpStatusDiv.innerHTML = "An error occurred while adding the IP address.";
+      }
+    });
+
+    const searchForm = document.getElementById("searchForm");
+    const searchType = document.getElementById("searchType");
+    const searchInput = document.getElementById("searchInput");
+
+    searchType.addEventListener("change", () => {
+      const selectedOption = searchType.options[searchType.selectedIndex].text;
+      searchInput.placeholder = `Enter ${selectedOption.toLowerCase()}`;
+      searchForm.action = searchType.value;
+    });
+
+    searchForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const searchTypeValue = searchType.value;
+      const searchInputValue = searchInput.value;
+
+      if (!searchTypeValue || !searchInputValue) {
+        alert("Please select a search type and enter a search term.");
+        return;
+      }
+
+      const url = `${searchTypeValue}?${new URLSearchParams({ [searchTypeValue.slice(1)]: searchInputValue })}`;
+      window.location.href = url;
+    });
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 </body>
 </html>

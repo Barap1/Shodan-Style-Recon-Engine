@@ -5,20 +5,22 @@ import subprocess
 import asyncio
 import json
 from OpenSSL import crypto
+import argparse
 import aiohttp
 import xml.etree.ElementTree as ET
 from bs4 import BeautifulSoup, SoupStrainer
-
+import sys
+import signal
 
 class SSLChecker:
     def __init__(
         self,
         ssl_port=443,
-        mass_scan_results_file="masscanResults.txt",
-        ips_file="ips.txt",
+        mass_scan_results_file="../masscanResults.txt",
+        ips_file="../ips.txt",
         masscan_rate=10000,
         timeout=3,
-        chunkSize=2000,
+        chunkSize=500,
         MAX_CONCURRENT=100,
         semaphore_limit=70,
         ports=[80],
@@ -287,12 +289,14 @@ class SSLChecker:
         """
         Uses subprocesses to run the masscan command
         """
-
         try:
+            # Check if ips_file is empty
+            if os.path.getsize(self.ips_file) == 0:
+                raise ValueError("The IP address list is empty. Please add IP addresses or ranges to ips.txt.")
+
             # this rate limit is the ideal to get the maximum amount of ip addresses
             command = f"sudo masscan -p443 --rate {self.masscan_rate} --wait 0 -iL {self.ips_file} -oH {self.mass_scan_results_file}"
             subprocess.run(command, shell=True, check=True)
-
         except subprocess.CalledProcessError as e:
             print(f"Error while running masscan: {e}")
         except FileNotFoundError:
@@ -313,13 +317,34 @@ class SSLChecker:
 
                 print(f'File "{file_path}" has been created.')
 
-    async def main(self):
+    def signal_handler(signum, frame):
+        print(f"Signal {signum} received. Exiting gracefully...")
+        sys.exit(0)  # Exit with a success code
+
+    async def main(self, signal_handler=signal_handler):
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
         self.check_and_create_files(self.mass_scan_results_file, self.ips_file)
         self.run_masscan()
         await self.extract_domains()
 
 
 if __name__ == "__main__":
-    ssl_checker = SSLChecker()
+    parser = argparse.ArgumentParser(description="SSL Checker")
+    parser.add_argument("masscan_rate", type=int, help="Rate for masscan")
+    parser.add_argument("timeout", type=int, help="Timeout for requests")
+    parser.add_argument("chunkSize", type=int, help="Chunk size for processing IPs")
+    parser.add_argument("ports", type=str, help="Comma-separated list of ports")
+
+    args = parser.parse_args()
+
+    ports = list(map(int, args.ports.split(',')))
+
+    ssl_checker = SSLChecker(
+        masscan_rate=args.masscan_rate,
+        timeout=args.timeout,
+        chunkSize=args.chunkSize,
+        ports=ports
+    )
     asyncio.run(ssl_checker.main())     # creates a new event loop for the duration of the call
 

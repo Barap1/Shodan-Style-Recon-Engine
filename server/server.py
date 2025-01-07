@@ -3,18 +3,46 @@ import json
 from bson.regex import Regex
 from pymongo import MongoClient
 from flask import Flask, request, jsonify, Response, render_template
+import subprocess
+import os
+import time
+import signal
 
 app = Flask(__name__)
+STATUS_FILE = "status.json"
+scanner_process = None
+scanner_start_time = None  
+
+# Function to update the status file (only status)
+def update_status_file(status, start_time=None):
+    data = {"status": status}
+    if start_time is not None:
+        data["start_time"] = start_time
+    with open(STATUS_FILE, "w") as f:
+        json.dump(data, f)
+
+update_status_file("not running")
+
+def check_status_file():
+    with open(STATUS_FILE, "r") as f:
+        data = json.load(f)
+    return data["status"]
+
+
+
+with open("chunks_processed.json", "w") as f:
+    json.dump({"chunks_processed": 0}, f)
+
 # MongoDB configuration
 mongo_uri = "mongodb://localhost:27017/"
 client = MongoClient(mongo_uri)
 
 try:
-  db = client["scannerdb"]
-  collection = db["sslchecker"]
-  print("MongoDB connection successful")
+    db = client["scannerdb"]
+    collection = db["sslchecker"]
+    print("MongoDB connection successful")
 except Exception as e:
-  print(f"Error connecting to MongoDB: {str(e)}")
+    print(f"Error connecting to MongoDB: {str(e)}")
 
 """
 @app.errorhandler(Exception)
@@ -38,16 +66,40 @@ def insert():
         # get json data from the request object
         results_json = request.get_json()
         collection.insert_many(results_json)
+
+        # Update the number of chunks processed
+        with open("chunks_processed.json", "r") as f:
+            data = json.load(f)
+        data["chunks_processed"] += 1
+        with open("chunks_processed.json", "w") as f:
+            json.dump(data, f)
+
         return jsonify({"message": "Inserted"})
 
     except Exception as e:
         print(f"Error inserting data into the database: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+
+
+@app.route("/add_ip", methods=["POST"])
+def add_ip():
+    try:
+        ip_address = request.form["ip_address"]
+        if not ip_address:
+            return jsonify({"error": "IP address is required"}), 400
+
+        with open("../ips.txt", "a") as f:
+            f.write(f"{ip_address}\n")
+
+        return jsonify({"message": "IP address added successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/bytitle", methods=["GET"])
 def bytitle():
     try:
-        title_param = request.args.get("title")
+        title_param = request.args.get("bytitle")
 
         if title_param is None:
             return jsonify({"error": "title query parameter is missing"}), 400
@@ -56,7 +108,8 @@ def bytitle():
         # match the exact value only if it's included in the title
         regex = Regex(regex_pattern, "i")  # "i" flag makes it case-insensitive
         from_index = int(request.args.get("from", 0))
-        to_index = int(request.args.get("to", float("inf")))
+        to_index = request.args.get("to", None)
+        to_index = int(to_index) if to_index is not None else None
 
         # Query MongoDB to find documents with the specified "title" in any key
         query = {
@@ -72,7 +125,7 @@ def bytitle():
         total_entries = len(matching_entries)
         # Adjust the indices if they are out of bounds
         from_index = max(0, min(from_index, total_entries))
-        to_index = min(total_entries, max(to_index, 0))
+        to_index = min(total_entries, max(to_index, 0)) if to_index is not None else total_entries
 
         # get the entries from:to ,from the entered values in query parameters and remove _id field before returning the response
         paginated_entries = []
@@ -93,13 +146,16 @@ def bytitle():
 @app.route("/bydomain", methods=["GET"])
 def bydomain():
     try:
-        domain_param = request.args.get("domain")
+        domain_param = request.args.get("bydomain")
 
         if domain_param is None:
             return jsonify({"error": "domain query parameter is missing"}), 400
 
         regex_pattern = rf".*{re.escape(domain_param)}.*"
         regex = Regex(regex_pattern, "i")
+        from_index = int(request.args.get("from", 0))
+        to_index = request.args.get("to", None)
+        to_index = int(to_index) if to_index is not None else None
 
         query = {
             "$or": [
@@ -110,71 +166,11 @@ def bydomain():
             ]
         }
 
-        json_data = list(collection.find(query, {"_id": 0}))
-
-        return jsonify(json_data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# http://localhost:5000/byip?ip=192.168.0.1
-@app.route("/byip", methods=["GET"])
-def byip():
-    try:
-        ip_param = request.args.get("ip")
-
-        if ip_param is None:
-            return jsonify({"error": "ip query parameter is missing"}), 400
-
-        regex_pattern = rf".*{re.escape(ip_param)}.*"
-        regex = Regex(regex_pattern, "i")
-
-        query = {
-            "$or": [
-                {"http_responseForIP.ip": regex},
-                {"https_responseForIP.ip": regex},
-                {"http_responseForDomainName.ip": regex},
-                {"https_responseForDomainName.ip": regex},
-            ]
-        }
-
-        json_data = list(collection.find(query, {"_id": 0}))
-
-        return jsonify(json_data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# http://localhost:5000/byport?port=8000&from=0&to=10
-@app.route("/byport", methods=["GET"])
-def byport():
-    try:
-        port_param = request.args.get("port")
-
-        if port_param is None:
-            return jsonify({"error": "port query parameter is missing"}), 400
-
-        regex_pattern = rf".*{re.escape(port_param)}.*"
-        regex = Regex(regex_pattern, "i")
-        from_index = int(request.args.get("from", 0))
-        to_index = int(request.args.get("to", float("inf")))
-
-        query = {
-            "$or": [
-                {"http_responseForIP.port": regex},
-                {"https_responseForIP.port": regex},
-                {"http_responseForDomainName.port": regex},
-                {"https_responseForDomainName.port": regex},
-            ]
-        }
-
         matching_entries = list(collection.find(query, {"_id": 0}))
         total_entries = len(matching_entries)
-        # Adjust the indices if they are out of bounds
         from_index = max(0, min(from_index, total_entries))
-        to_index = min(total_entries, max(to_index, 0))
+        to_index = min(total_entries, max(to_index, 0)) if to_index is not None else total_entries
 
-        # get the entries from:to ,from the entered values in query parameters and remove _id field before returning the response
         paginated_entries = []
         for entry in matching_entries[from_index:to_index]:
             entry.pop("_id", None)
@@ -183,7 +179,74 @@ def byport():
         response = {"total_entries": total_entries, "entries": paginated_entries}
         json_response = json.dumps(response, indent=4)
 
-        # Create a Response object with the JSON content type
+        return Response(json_response, content_type="application/json")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# http://localhost:5000/byip?ip=192.168.0.1
+@app.route("/byip", methods=["GET"])
+def byip():
+    try:
+        ip_param = request.args.get("byip")
+
+        if ip_param is None:
+            return jsonify({"error": "ip query parameter is missing"}), 400
+
+        regex_pattern = rf".*{re.escape(ip_param)}.*"
+        regex = Regex(regex_pattern, "i")
+        from_index = int(request.args.get("from", 0))
+        to_index = request.args.get("to", None)
+        to_index = int(to_index) if to_index is not None else None
+
+        query = {"ip": regex}
+
+        matching_entries = list(collection.find(query, {"_id": 0}))
+        total_entries = len(matching_entries)
+        from_index = max(0, min(from_index, total_entries))
+        to_index = min(total_entries, max(to_index, 0)) if to_index is not None else total_entries
+
+        paginated_entries = []
+        for entry in matching_entries[from_index:to_index]:
+            entry.pop("_id", None)
+            paginated_entries.append(entry)
+
+        response = {"total_entries": total_entries, "entries": paginated_entries}
+        json_response = json.dumps(response, indent=4)
+
+        return Response(json_response, content_type="application/json")
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# http://localhost:5000/byport?port=8000&from=0&to=10
+@app.route("/byport", methods=["GET"])
+def byport():
+    try:
+        port_param = request.args.get("byport")
+
+        if port_param is None:
+            return jsonify({"error": "port query parameter is missing"}), 400
+
+        from_index = int(request.args.get("from", 0))
+        to_index = request.args.get("to", None)
+        to_index = int(to_index) if to_index is not None else None
+
+        query = {"ports.port": int(port_param)}
+
+        matching_entries = list(collection.find(query, {"_id": 0}))
+        total_entries = len(matching_entries)
+        from_index = max(0, min(from_index, total_entries))
+        to_index = min(total_entries, max(to_index, 0)) if to_index is not None else total_entries
+
+        paginated_entries = []
+        for entry in matching_entries[from_index:to_index]:
+            entry.pop("_id", None)
+            paginated_entries.append(entry)
+
+        response = {"total_entries": total_entries, "entries": paginated_entries}
+        json_response = json.dumps(response, indent=4)
+
         return Response(json_response, content_type="application/json")
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -196,13 +259,16 @@ def byport():
 @app.route("/byhresponse", methods=["GET"])
 def byhresponse():
     try:
-        hresponse_param = request.args.get("hresponse")
+        hresponse_param = request.args.get("byhresponse")
 
         if hresponse_param is None:
             return jsonify({"error": "hresponse query parameter is missing"}), 400
 
+        regex_pattern = rf".*{re.escape(hresponse_param)}.*"
+        regex = Regex(regex_pattern, "i")
         from_index = int(request.args.get("from", 0))
-        to_index = int(request.args.get("to", float("inf")))
+        to_index = request.args.get("to", None)
+        to_index = int(to_index) if to_index is not None else None
         # get all the documents from DB and convert the result into list
         all_documents = list(collection.find({}))
         matching_entries = []
@@ -244,7 +310,7 @@ def byhresponse():
 
         # Adjust the indices if they are out of bounds
         from_index = max(0, min(from_index, total_entries))
-        to_index = min(total_entries, max(to_index, 0))
+        to_index = min(total_entries, max(to_index, 0)) if to_index is not None else total_entries
 
         # get the entries from:to ,from the entered values in query parameters and remove _id field before returning the response
         paginated_entries = []
@@ -268,13 +334,16 @@ def byhresponse():
 @app.route("/byhkeyresponse", methods=["GET"])
 def byhkeyresponse():
     try:
-        hkeyresponse_param = request.args.get("hkeyresponse")
+        hkeyresponse_param = request.args.get("byhkeyresponse")
 
         if hkeyresponse_param is None:
-            return jsonify({"error": "hresponse query parameter is missing"}), 400
+            return jsonify({"error": "hkeyresponse query parameter is missing"}), 400
 
+        regex_pattern = rf".*{re.escape(hkeyresponse_param)}.*"
+        regex = Regex(regex_pattern, "i")
         from_index = int(request.args.get("from", 0))
-        to_index = int(request.args.get("to", float("inf")))
+        to_index = request.args.get("to", None)
+        to_index = int(to_index) if to_index is not None else None
         # get all the documents from DB and convert the result into list
         all_documents = list(collection.find({}))
         matching_entries = []
@@ -313,7 +382,7 @@ def byhkeyresponse():
 
         # Adjust the indices if they are out of bounds
         from_index = max(0, min(from_index, total_entries))
-        to_index = min(total_entries, max(to_index, 0))
+        to_index = min(total_entries, max(to_index, 0)) if to_index is not None else total_entries
 
         # get the entries from:to ,from the entered values in query parameters and remove _id field before returning the response
         paginated_entries = []
@@ -351,7 +420,88 @@ def perform_delete():
   except Exception as e:
     return jsonify({"error": str(e)}), 500
 
+@app.route("/scan", methods=["POST"])
+def scan():
+    global scanner_process
 
+    if str(check_status_file()) == "running":
+        return jsonify({"error": "Scanner is already running"}), 400
+    else:
+        try:
+            masscan_rate = request.form["masscan_rate"]
+            timeout = request.form["timeout"]
+            chunkSize = request.form["chunkSize"]
+            ports = request.form["ports"]
+
+            scanner_path = os.path.join(os.path.dirname(__file__), '..', 'scanner.py')
+            command = f"python3 {scanner_path} {masscan_rate} {timeout} {chunkSize} {ports}"
+            print(f"Running command: {command}")
+
+            scanner_start_time = time.time()
+            scanner_process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, preexec_fn=os.setsid)
+            # Update status to "running" and include start time
+            update_status_file("running", scanner_start_time)
+
+            return jsonify({"message": "Scanner started successfully"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+@app.route("/scanstatus", methods=["GET"])
+def scan_status():
+    """Reads the status from the status.json file and calculates elapsed time."""
+    try:
+        with open(STATUS_FILE, "r") as f:
+            status_data = json.load(f)
+            status = status_data["status"]
+            start_time = status_data.get("start_time", 0)
+    except (FileNotFoundError, json.JSONDecodeError):
+        # File not found or invalid JSON
+        return jsonify({"status": "not running", "elapsed_time": 0}), 200
+
+    if status == "running":
+        elapsed_time = int(time.time() - start_time)  # Calculate elapsed time here
+    else:
+        elapsed_time = 0
+
+    return jsonify({"status": status, "elapsed_time": elapsed_time}), 200
+
+@app.route("/scanchunks", methods=["GET"])
+def get_chunks_processed():
+    try:
+        with open("status.json", "r") as g:
+            stat = json.load(g)
+            if stat["status"] == "running":
+                with open("chunks_processed.json", "r") as f:
+                    data = json.load(f)
+                return jsonify(data), 200
+            else:
+                return jsonify({"chunks_processed": 0}), 200
+    except:
+        return jsonify({"chunks_processed": 0}), 200
+    
+@app.route("/scanstop", methods=["POST"])
+def stop_scan():
+    global scanner_process
+
+    try:
+        if str(check_status_file()) == "running":
+            update_status_file("stopped")
+            # Send SIGTERM to the process group
+   
+            if scanner_process:
+                os.kill(int(scanner_process.pid), signal.SIGKILL)
+            time.sleep(1)
+            os.killpg(os.getpgid(scanner_process.pid), signal.SIGKILL)
+            scanner_process.wait()
+
+            scanner_process = None
+            
+            return jsonify({"message": "Scanner stopped successfully"}), 200
+        else:
+            return jsonify({"message": "No scanner process is running"}), 200
+    except Exception as e:
+        return jsonify({"message": f"Failed to stop scanner: {e}"}), 200
+
+    
 if __name__ == "__main__":
-  # In production set debug=False
-  app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False)
