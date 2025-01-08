@@ -44,7 +44,7 @@ This project is designed to run on Ubuntu, which can be set up via WSL on Window
 ## Usage
 
 
-1. Run the server using gunicorn
+1. Run the server
    ```sh
    python3 server.py
    ```
