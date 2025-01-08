@@ -12,11 +12,13 @@ The Shodan Style Recon Engine is a powerful tool designed for vulnerability anal
 
 This project is designed to run on Ubuntu, which can be set up via WSL on Windows.
 
-### Prerequisites
+### Software Stack
 
-- Python 3.x
+- JS/HTML/CSS
+- Flask
 - MongoDB
-- Masscan
+- Python
+- Linux
 
 ### Installation
 
