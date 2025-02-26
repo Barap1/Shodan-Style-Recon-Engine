@@ -322,8 +322,8 @@ class SSLChecker:
         sys.exit(0)  # Exit with a success code
 
     async def main(self, signal_handler=signal_handler):
-        signal.signal(signal.SIGTERM, signal_handler)
-        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM,signal_handler)
+        signal.signal(signal.SIGINT,signal_handler)
         self.check_and_create_files(self.mass_scan_results_file, self.ips_file)
         self.run_masscan()
         await self.extract_domains()
@@ -347,4 +347,5 @@ if __name__ == "__main__":
         ports=ports
     )
     asyncio.run(ssl_checker.main())     # creates a new event loop for the duration of the call
+
 

@@ -68,6 +68,12 @@
       flex-direction: column;
       gap: 10px;
     }
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1050;
+    }
   </style>
 </head>
 <body>
@@ -171,19 +177,43 @@
     </div>
   </div>
 
+  <div class="toast-container"></div>
+
   <script>
     const scanForm = document.getElementById("scanForm");
     const stopScannerButton = document.getElementById("stopScanner");
     const scannerStatusDiv = document.getElementById("scannerStatus");
     const chunksProcessedDiv = document.getElementById("chunksProcessed");
+    const toastContainer = document.querySelector(".toast-container");
 
     let scannerStatusInterval;
     let chunksProcessedInterval;
 
+    function showToast(message, type = "success") {
+      const toast = document.createElement("div");
+      toast.className = `toast align-items-center text-bg-${type} border-0`;
+      toast.role = "alert";
+      toast.ariaLive = "assertive";
+      toast.ariaAtomic = "true";
+      toast.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">${message}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      toastContainer.appendChild(toast);
+      const bsToast = new bootstrap.Toast(toast);
+      bsToast.show();
+      toast.addEventListener("hidden.bs.toast", () => {
+        toast.remove();
+      });
+    }
+
+    // Event listener for the scan form submission
     scanForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const formData = new FormData(scanForm);
-      const params = new URLSearchParams(formData);
+      event.preventDefault(); // Prevent the default form submission behavior
+      const formData = new FormData(scanForm); // Get the form data
+      const params = new URLSearchParams(formData); // Convert form data to URL search parameters
 
       try {
         const response = await fetch("/scan", {
@@ -193,43 +223,45 @@
         const data = await response.json();
 
         if (response.ok) {
-          alert(data.message);
-          checkScannerStatus();
-          clearInterval(scannerStatusInterval);
+          showToast(data.message); // Show toast with the response message
+          checkScannerStatus(); // Check the scanner status
+          clearInterval(scannerStatusInterval); // Clear any existing intervals
           clearInterval(chunksProcessedInterval);
-          scannerStatusInterval = setInterval(checkScannerStatus, 990);
+          scannerStatusInterval = setInterval(checkScannerStatus, 990); // Set intervals to check status and chunks processed
           chunksProcessedInterval = setInterval(checkChunksProcessed, 1000);
         } else {
-          console.error(data.error);
-          
+          console.error(data.error); // Log any errors
+          showToast(data.error, "danger"); // Show error toast
         }
       } catch (error) {
-        console.error(error);
-        
+        console.error(error); // Log any errors
+        showToast("An error occurred while starting the scanner.", "danger"); // Show error toast
       }
     });
 
+    // Event listener for the stop scanner button
     stopScannerButton.addEventListener("click", async () => {
       try {
         const response = await fetch("/scanstop", { method: "POST" });
         const data = await response.json();
 
         if (response.ok) {
-          alert(data.message);
-          scannerStatusDiv.innerHTML = "Scanner is not running.";
-          chunksProcessedDiv.innerHTML = "";
-          clearInterval(scannerStatusInterval);
+          showToast(data.message); // Show toast with the response message
+          scannerStatusDiv.innerHTML = "Scanner is not running."; // Update the status div
+          chunksProcessedDiv.innerHTML = ""; // Clear the chunks processed div
+          clearInterval(scannerStatusInterval); // Clear any existing intervals
           clearInterval(chunksProcessedInterval);
         } else {
-          console.error(data.error);
-          alert("Failed to stop the scanner.");
+          console.error(data.error); // Log any errors
+          showToast("Failed to stop the scanner.", "danger"); // Show error toast
         }
       } catch (error) {
-        console.error(error);
-        alert("Failed to stop the scanner.");
+        console.error(error); // Log any errors
+        showToast("Failed to stop the scanner.", "danger"); // Show error toast
       }
     });
 
+    // Function to check the scanner status
     async function checkScannerStatus() {
       try {
         const response = await fetch("/scanstatus");
@@ -237,53 +269,54 @@
 
         if (response.ok) {
           if (data.status === "running") {
-            scannerStatusDiv.innerHTML = `Scanner is running. Elapsed time: ${data.elapsed_time} seconds.`;
+            scannerStatusDiv.innerHTML = `Scanner is running. Elapsed time: ${data.elapsed_time} seconds.`; // Update the status div
           } else {
-            scannerStatusDiv.innerHTML = "Scanner is not running.";
-            clearInterval(scannerStatusInterval);
+            scannerStatusDiv.innerHTML = "Scanner is not running."; // Update the status div
+            clearInterval(scannerStatusInterval); // Clear any existing intervals
             clearInterval(chunksProcessedInterval);
-
           }
         } else {
-          console.error(data.error);
-          scannerStatusDiv.innerHTML = "An error occurred while checking the scanner status.";
+          console.error(data.error); // Log any errors
+          scannerStatusDiv.innerHTML = "An error occurred while checking the scanner status."; // Update the status div
         }
       } catch (error) {
-        console.error(error);
-        scannerStatusDiv.innerHTML = "An error occurred while checking the scanner status.";
+        console.error(error); // Log any errors
+        scannerStatusDiv.innerHTML = "An error occurred while checking the scanner status."; // Update the status div
       }
     }
 
+    // Function to check the number of chunks processed
     async function checkChunksProcessed() {
       try {
         const response = await fetch("/scanchunks");
         const data = await response.json();
 
         if (response.ok) {
-          chunksProcessedDiv.innerHTML = `Chunks processed: ${data.chunks_processed}`;
+          chunksProcessedDiv.innerHTML = `Chunks processed: ${data.chunks_processed}`; // Update the chunks processed div
         } else {
-          console.error(data.error);
-          chunksProcessedDiv.innerHTML = "An error occurred while checking the chunks processed.";
+          console.error(data.error); // Log any errors
+          chunksProcessedDiv.innerHTML = "An error occurred while checking the chunks processed."; // Update the chunks processed div
         }
       } catch (error) {
-        console.error(error);
-        chunksProcessedDiv.innerHTML = "An error occurred while checking the chunks processed.";
+        console.error(error); // Log any errors
+        chunksProcessedDiv.innerHTML = "An error occurred while checking the chunks processed."; // Update the chunks processed div
       }
     }
 
     // Check scanner status and chunks processed on page load
     checkScannerStatus();
     checkChunksProcessed();
-    scannerStatusInterval = setInterval(checkScannerStatus, 990);
+    scannerStatusInterval = setInterval(checkScannerStatus, 990); // Set intervals to check status and chunks processed
     chunksProcessedInterval = setInterval(checkChunksProcessed, 1000);
 
     const addIpForm = document.getElementById("addIpForm");
     const addIpStatusDiv = document.getElementById("addIpStatus");
 
+    // Event listener for the add IP form submission
     addIpForm.addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const formData = new FormData(addIpForm);
-      const params = new URLSearchParams(formData);
+      event.preventDefault(); // Prevent the default form submission behavior
+      const formData = new FormData(addIpForm); // Get the form data
+      const params = new URLSearchParams(formData); // Convert form data to URL search parameters
 
       try {
         const response = await fetch("/add_ip", {
@@ -293,14 +326,17 @@
         const data = await response.json();
 
         if (response.ok) {
-          addIpStatusDiv.innerHTML = data.message;
+          addIpStatusDiv.innerHTML = data.message; // Update the status div
+          showToast(data.message); // Show toast with the response message
         } else {
-          console.error(data.error);
-          addIpStatusDiv.innerHTML = `Error: ${data.error}`;
+          console.error(data.error); // Log any errors
+          addIpStatusDiv.innerHTML = `Error: ${data.error}`; // Update the status div
+          showToast(data.error, "danger"); // Show error toast
         }
       } catch (error) {
-        console.error(error);
-        addIpStatusDiv.innerHTML = "An error occurred while adding the IP address.";
+        console.error(error); // Log any errors
+        addIpStatusDiv.innerHTML = "An error occurred while adding the IP address."; // Update the status div
+        showToast("An error occurred while adding the IP address.", "danger"); // Show error toast
       }
     });
 
@@ -308,24 +344,28 @@
     const searchType = document.getElementById("searchType");
     const searchInput = document.getElementById("searchInput");
 
+    // Event listener for the search type change
     searchType.addEventListener("change", () => {
       const selectedOption = searchType.options[searchType.selectedIndex].text;
-      searchInput.placeholder = `Enter ${selectedOption.toLowerCase()}`;
-      searchForm.action = searchType.value;
+      searchInput.placeholder = `Enter ${selectedOption.toLowerCase()}`; // Update the placeholder text
+      searchForm.action = searchType.value; // Update the form action
     });
 
+    // Event listener for the search form submission
     searchForm.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const searchTypeValue = searchType.value;
-      const searchInputValue = searchInput.value;
+      event.preventDefault(); // Prevent the default form submission behavior
+      const searchTypeValue = searchType.value; // Get the selected search type value
+      const searchInputValue = searchInput.value; // Get the search input value
 
+      // Check if both search type and search input are provided
       if (!searchTypeValue || !searchInputValue) {
-        alert("Please select a search type and enter a search term.");
-        return;
+        showToast("Please select a search type and enter a search term.", "danger"); // Show error toast
+        return; // Exit the function if validation fails
       }
 
+      // Construct the URL for the search request with query parameters
       const url = `${searchTypeValue}?${new URLSearchParams({ [searchTypeValue.slice(1)]: searchInputValue })}`;
-      window.location.href = url;
+      window.location.href = url; // Redirect the browser to the constructed URL
     });
   </script>
 

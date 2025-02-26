@@ -1,0 +1,122 @@
+{
+  "$schema": "https://aka.ms/codetour-schema",
+  "title": "Server",
+  "steps": [
+    {
+      "file": "server/server.py",
+      "description": "Server Startup - Runs a python flask server",
+      "line": 507
+    },
+    {
+      "file": "server/server.py",
+      "description": "Initializes the Setup files. \nStatus and chunks_processed. These get regurarly updated when the scanner starts to run. JSON FIles",
+      "line": 30
+    },
+    {
+      "file": "server/server.py",
+      "description": "Creates the connection to the mongo DB Database",
+      "line": 37
+    },
+    {
+      "file": "server/server.py",
+      "description": "Home page and 404 Page",
+      "line": 59
+    },
+    {
+      "file": "server/templates/index.html",
+      "description": "Front end created with HTML/CSS/JS",
+      "line": 4
+    },
+    {
+      "file": "server/server.py",
+      "description": "When an IP Address is added from the UI, this inserts it into the ips.txt file that the scanner reads from",
+      "line": 85
+    },
+    {
+      "file": "server/templates/index.html",
+      "description": "Running scanner from the UI, sends post request back to the server",
+      "line": 190
+    },
+    {
+      "file": "server/server.py",
+      "description": "Runs scanner.py with the configuration settings given using subprocesses, it then updates the status.json",
+      "line": 423
+    },
+    {
+      "file": "server/server.py",
+      "description": "These two routes are called by the frontend each second to retrieve the status",
+      "line": 449
+    },
+    {
+      "file": "scanner.py",
+      "description": "Scanner creates a new event loop for itself on startup",
+      "line": 349
+    },
+    {
+      "file": "scanner.py",
+      "description": "First starts off by creating the files that it reads from (ips.txt and masscanresults.txt) if they are not already there",
+      "line": 307
+    },
+    {
+      "file": "scanner.py",
+      "description": "Next it runs masscan with the config settings that were given using subprocesses",
+      "line": 288
+    },
+    {
+      "file": "scanner.py",
+      "description": "It then starts to collect more information on all of the IP addresses that were found",
+      "line": 239
+    },
+    {
+      "file": "scanner.py",
+      "description": "--->",
+      "line": 256
+    },
+    {
+      "file": "scanner.py",
+      "description": "Uses openSSL to get information on the common name of each IP address from its certificate. LibreSSL was also considered",
+      "line": 217
+    },
+    {
+      "file": "scanner.py",
+      "description": "--->",
+      "line": 260
+    },
+    {
+      "file": "scanner.py",
+      "description": "Create a request to send to each domain depending on what information is available on it",
+      "line": 177
+    },
+    {
+      "file": "scanner.py",
+      "description": "Sends the get request with aiohttp, and then parses it",
+      "line": 52
+    },
+    {
+      "file": "scanner.py",
+      "description": "It then sends the data to the server",
+      "line": 271
+    },
+    {
+      "file": "server/server.py",
+      "description": "The server accepts the /insert and adds the data to the MongoDB database with the connection that was made earlier. SQLite was also considered.",
+      "line": 64
+    },
+    {
+      "file": "server/server.py",
+      "description": "When the Stop scanner button is pressed, it attempts to cleanly terminate the process of the scanner",
+      "line": 482
+    },
+    {
+      "file": "server/server.py",
+      "description": "Uses regex to filter by the specified type. Here it is done by domain",
+      "line": 146
+    },
+    {
+      "file": "server/server.py",
+      "description": "When the delete button is pressed, it loads the delete confirmation page and then removes all the data from the database",
+      "line": 410
+    }
+  ],
+  "ref": "main"
+}
