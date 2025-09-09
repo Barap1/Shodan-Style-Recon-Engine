@@ -28,11 +28,12 @@ This project is designed to run on Ubuntu, which can be set up via WSL on Window
    ```
 2. Install Masscan
    ```sh
-    sudo apt-get --assume-yes install git make gcc
-    git clone https://github.com/robertdavidgraham/masscan
+    sudo apt-get update
+    sudo apt-get install -y git make gcc
+    git clone https://github.com/robertdavidgraham/masscan.git
     cd masscan
-    make
-    make install
+    make -j
+    sudo make install
    ```
 3. Install Packages
    ```sh
