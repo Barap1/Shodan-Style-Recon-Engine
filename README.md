@@ -6,7 +6,7 @@
 
 ## Overview
 
-The Shodan Style Recon Engine is a powerful tool designed for vulnerability analysis and penetration testing. It leverages Masscan for high-speed network scanning and integrates with MongoDB to store and search the results. The web interface allows users to easily manage scans and search the database for specific information.
+The Shodan Style Recon Engine is a tool designed for vulnerability analysis and penetration testing. It leverages Masscan for high-speed network scanning and integrates with MongoDB to store and search the results. The web interface allows users to easily manage scans and search the database for specific information.
 
 ## Getting Started
 
@@ -18,7 +18,6 @@ This project is designed to run on Ubuntu, which can be set up via WSL on Window
 - Flask
 - MongoDB
 - Python
-- Linux
 
 ### Installation
 
